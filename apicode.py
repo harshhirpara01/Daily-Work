@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 import pymysql.cursors
 from pydantic import BaseModel,Field
-from fastapi import HTTPException
+from fastapi.responses import JSONResponse,Response
+from starlette.responses import Response as HTTPResponse
+from fastapi import HTTPException, Request
 import datetime
 import random
 import re
@@ -168,7 +170,7 @@ async def delete(delete: userdelete):
 
     return {"message" : "user deleted succesfully"}
 
-
+    
 @app.post("/insert_data")
 async def insert_data(data : insert):
 
@@ -216,7 +218,7 @@ async def register_user(register: user_register):
 
     cursor = connection.cursor()
 
-
+    #
     #
     # check_query = """
     # select * from users where username = %s or email = %s or mobileno = %s
@@ -228,8 +230,8 @@ async def register_user(register: user_register):
     # if existuser:
     #     cursor.close()
     #     connection.close()
-
-
+    #
+    #
         # if existuser["username"]== register.username:
         #     raise HTTPException(status_code = 400,detail = 'username is already exists')
 
@@ -297,12 +299,16 @@ async def check_verifyuser(verify:isverify):
 
            if result["is_verify"]:
                return {"message": "user is already verified."}
+
            if result['email'] != verify.email:
                return {"message":"email does not match"}
+
            if result['password'] != verify.password:
                return {"message":"password does not match"}
+
            if result['verifycode'] != verify.verifycode:
                return {"message":"verifycode does not match"}
+
 
            qeury2 = """
               update users
@@ -348,9 +354,6 @@ async def login(userlogin:login):
     cursor = connection.cursor()
 
     try:
-
-
-
           query = """
     
                select email,password from users 
@@ -374,8 +377,6 @@ async def login(userlogin:login):
             """
 
           cursor.execute(qury_update_otp)
-
-
 
           connection.commit()
 
@@ -411,7 +412,7 @@ async def check_login(check: checklogin):
         created_at desc
         """
 
-        cursor.execute(query, (check.email))
+        cursor.execute(query, check.email)
         result = cursor.fetchone()
         if not result:
             raise HTTPException(status_code=400, detail="User not verified or invalid details")
@@ -432,3 +433,25 @@ async def check_login(check: checklogin):
         connection.close()
 
 #JSONRESPONSE, RESPONSE, HTTPRESPONSE
+
+@app.get("/json_responce")
+async def responce_json():
+    content = {"message":"hello sir how can i help you to learn response"}
+    return JSONResponse(content,status_code = 200)
+
+
+@app.get("/response")
+async def response():
+    content = "<h1>this is html responce</h1>"
+    return Response(content, media_type = "text/html")
+
+@app.get("/https-responce")
+async def https_binary(request:Request):
+    heaeee= request.headers
+    print(heaeee)
+    content = b"custome binary response"
+
+    headers = {"X-Example-Header": "CustomHeader"}
+
+    print(request.headers)
+    return HTTPResponse(content = content,status_code=200,headers = headers,media_type= "application/octet-stream")
